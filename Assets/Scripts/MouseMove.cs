@@ -36,11 +36,11 @@ public class MouseMove : MonoBehaviour {
 			mouseX = Input.GetAxis("Mouse X");
 			mouseY = Input.GetAxis("Mouse Y");
 		} else if(SystemInfo.deviceType == DeviceType.Handheld) {
-			foreach (Touch touch in Input.touches) {
-				if(touch.phase == TouchPhase.Moved) {
-					mouseX = touch.deltaPosition.x;
-					mouseY = touch.deltaPosition.y;
-				}
+			if(Input.touchCount == 1 && Input.touches[0].phase == TouchPhase.Moved) {
+				mouseX = Input.touches[0].deltaPosition.magnitude * 
+					(Input.touches[0].deltaPosition.x / Screen.width);
+				mouseY = Input.touches[0].deltaPosition.magnitude * 
+					(Input.touches[0].deltaPosition.y / Screen.height);
 			}
 		}
 		
