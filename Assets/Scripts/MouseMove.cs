@@ -20,6 +20,9 @@ public class MouseMove : MonoBehaviour {
 		point = transform.TransformPoint(Vector3.up * 3);
 		scarecrow = FindObjectOfType(typeof(Scarecrow)) as Scarecrow;
 		forceMultiplier = 150f;
+		if(SystemInfo.deviceType == DeviceType.Handheld) {
+			Input.multiTouchEnabled = false;
+		}
 	}
 	
 	// Update is called once per frame
@@ -28,9 +31,18 @@ public class MouseMove : MonoBehaviour {
 		if(!scarecrow.isAlive) {
 			return;
 		}
-
-		mouseX = Input.GetAxis("Mouse X");
-		mouseY = Input.GetAxis("Mouse Y");
+		
+		if(SystemInfo.deviceType == DeviceType.Desktop) {
+			mouseX = Input.GetAxis("Mouse X");
+			mouseY = Input.GetAxis("Mouse Y");
+		} else if(SystemInfo.deviceType == DeviceType.Handheld) {
+			foreach (Touch touch in Input.touches) {
+				if(touch.phase == TouchPhase.Moved) {
+					mouseX = touch.deltaPosition.x;
+					mouseY = touch.deltaPosition.y;
+				}
+			}
+		}
 		
 		forceX = mouseX * forceMultiplier;
 		forceY = mouseY * forceMultiplier * 1.5f;
