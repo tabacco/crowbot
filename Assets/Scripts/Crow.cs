@@ -27,12 +27,14 @@ public class Crow : MonoBehaviour {
 	
 	public CrowStates mCurState;
 	
+	
 	Scarecrow mScarecrow;
 	
 	//----------------------------------------------------------------------------------------------------
 	// Use this for initialization
 	//----------------------------------------------------------------------------------------------------
 	void Start () {
+		
 		mHunger = 0.5f;
 		mStress = 0f;
 		
@@ -298,4 +300,76 @@ public class Crow : MonoBehaviour {
 	}
 	
 
+}
+
+//public enum CrowStates { Idle, Eating, FlyingToCorn, Fleeing, Dead }
+
+public class CrowState_Idle : State {
+	public override void Enter() {
+		base.Enter();
+	}
+	
+	public override void Update(float deltaTime) {
+		base.Update (deltaTime);
+	}
+	
+	public override void Exit() {
+		base.Exit();
+	}
+}
+
+public class CrowState_Eating : State {
+	public override void Enter() {
+		base.Enter();
+	}
+	
+	public override void Update(float deltaTime) {
+		base.Update (deltaTime);
+	}
+	
+	public override void Exit() {
+		base.Exit();
+	}
+}
+
+public class CrowState_FlyingToCorn : State {
+	public override void Enter() {
+		base.Enter();
+	}
+	
+	public override void Update(float deltaTime) {
+		base.Update (deltaTime);
+	}
+	
+	public override void Exit() {
+		base.Exit();
+	}
+}
+
+public class CrowState_Fleeing : State {
+	public override void Enter() {
+		base.Enter();
+	}
+	
+	public override void Update(float deltaTime) {
+		base.Update (deltaTime);
+	}
+	
+	public override void Exit() {
+		base.Exit();
+	}
+}
+
+public class CrowState_Dead : State {
+	public override void Enter() {
+		base.Enter();
+	}
+	
+	public override void Update(float deltaTime) {
+		base.Update (deltaTime);
+	}
+	
+	public override void Exit() {
+		base.Exit();
+	}
 }
