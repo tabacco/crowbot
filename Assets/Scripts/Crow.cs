@@ -12,7 +12,7 @@ public class Crow : MonoBehaviour {
 	public float kNormalStressThreshold = 0.5f;
 	public float kHungerReturnThreshold = 0.8f;
 	public float kHitStressPercentage	= 0.25f;
-	public float kMaxSpeed				= 0.8f;
+	public float kMaxSpeed				= 0.08f;
 	
 	public AudioClip 	kCawSound;
 	public AudioClip 	kFlapSound;
@@ -79,13 +79,9 @@ public class Crow : MonoBehaviour {
 			float distanceMultiplier = ( 8f - Vector3.Distance( transform.position, mScarecrow.transform.position ) ) / 8f;
 			distanceMultiplier = Mathf.Clamp( distanceMultiplier, 0f, 1f );
 			float stressAmount = mScarecrow.mMovementIntensity * distanceMultiplier * Time.deltaTime;
-			if( stressAmount > 0f ) {
-				Scare( stressAmount );
-			}
-			// otherwise, decrease it over time
-			else {
-				mStress = Mathf.Clamp(mStress + kStressRate * Time.deltaTime, 0f, 1f);
-			}
+			Scare( stressAmount );
+			// also, decrease it over time
+			mStress = Mathf.Clamp(mStress + kStressRate * Time.deltaTime, 0f, 1f);
 		}
 		
 		// play the cawing sound if flying around
@@ -119,21 +115,6 @@ public class Crow : MonoBehaviour {
 			print("Hit Scarecrow");
 			Hit( kHitStressPercentage );
 		}
-	}
-	
-	//----------------------------------------------------------------------------------------------------
-	// Fly to the specified position
-	//----------------------------------------------------------------------------------------------------
-	IEnumerator FlyToPosition( Vector3 targetPos ) {
-		float maxSpeed = 0.08f;
-		
-		// face the direction we're going
-		SwitchFacing( transform.position.z > targetPos.z );
-		
-		while( Vector3.Distance( transform.position, targetPos ) > 0.05f ) {
-			transform.position = Vector3.MoveTowards( transform.position, targetPos, maxSpeed );
-			yield return 0;
-		}		
 	}
 	
 	//----------------------------------------------------------------------------------------------------
@@ -253,6 +234,7 @@ public class CrowState_Eating : State {
 	private float 	mEndEatingTime;
 	private Vector3 mFlyUpTargetPos;
 	private float	mNextEatSoundTime;
+	private bool	mbDoneEating;
 	
 	public CrowState_Eating() {
 		mStateID = CrowStates.Eating;	
@@ -275,6 +257,8 @@ public class CrowState_Eating : State {
 		
 		// always play the eat sound right away
 		mNextEatSoundTime = Time.time;
+		
+		mbDoneEating = false;
 	}
 	
 	public override void Update (float deltaTime)
@@ -299,6 +283,10 @@ public class CrowState_Eating : State {
 		
 		// fly up
 		else if( Vector3.Distance( mCrow.transform.position, mFlyUpTargetPos ) > 0.05f ) {
+			if( !mbDoneEating ) {
+				mCrow.SwitchSprite( "Sprite_Calm" );
+				mbDoneEating = true;	
+			}
 			mCrow.transform.position = Vector3.MoveTowards( mCrow.transform.position, mFlyUpTargetPos, mCrow.kMaxSpeed );
 		}		
 
@@ -323,6 +311,7 @@ public class CrowState_Eating : State {
 public class CrowState_FlyingToCorn : State {
 	private Crow 		mCrow;
 	private CornStalk 	mTargetCorn;
+	private Vector3		mTargetCornLandPos;
 	
 	public CrowState_FlyingToCorn() {
 		mStateID = CrowStates.FlyingToCorn;	
@@ -337,6 +326,9 @@ public class CrowState_FlyingToCorn : State {
 		// pick a corn stalk pos
 		mTargetCorn = PickCornStalk();
 		
+		// set the landing position (offset from corn transform)
+		mTargetCornLandPos = mTargetCorn.transform.position + new Vector3(0f, 0.9f, -0.7f);
+		
 		// face the direction we're going
 		mCrow.SwitchFacing( mCrow.transform.position.z > mTargetCorn.transform.position.z );		
 	}
@@ -344,8 +336,8 @@ public class CrowState_FlyingToCorn : State {
 	public override void Update (float deltaTime)
 	{
 		// move toward the corn until we're in eating range
-		if( Vector3.Distance( mCrow.transform.position, mTargetCorn.transform.position ) > 0.05f ) {
-			mCrow.transform.position = Vector3.MoveTowards( mCrow.transform.position, mTargetCorn.transform.position, mCrow.kMaxSpeed );
+		if( Vector3.Distance( mCrow.transform.position, mTargetCornLandPos ) > 0.05f ) {
+			mCrow.transform.position = Vector3.MoveTowards( mCrow.transform.position, mTargetCornLandPos, mCrow.kMaxSpeed );
 		}		
 		else {
 			mCrow.Eat( mTargetCorn );
