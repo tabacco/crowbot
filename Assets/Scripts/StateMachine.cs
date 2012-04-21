@@ -31,6 +31,9 @@ public class StateMachine {
 	
 	// change to a new state, specified by the string name given in the state's definition
 	public void ChangeState( int stateID ) {
+		// don't switch to the same state
+		if( mCurState != null && stateID == mCurState.GetID() ) return;
+		
 		// make sure the state specified is actually in the list
 		State newState = null;
 		foreach( State s in mStates ) {

@@ -62,45 +62,40 @@ public class Crow : MonoBehaviour {
 	// Update is called once per frame
 	//----------------------------------------------------------------------------------------------------
 	void Update () {
-		int currentStateID = GetCurrentStateID();
+		if( GetCurrentStateID() != CrowStates.Dead && CheckDeath() ) return;
 		
+		mStateMachine.Update( Time.deltaTime );		
+	}
+	
+	public float GetStressFromScarecrow() {
+		float distanceMultiplier = ( 8f - Vector3.Distance( transform.position, mScarecrow.transform.position ) ) / 8f;
+		distanceMultiplier = Mathf.Clamp( distanceMultiplier, 0f, 1f );
+		float stressAmount = mScarecrow.mMovementIntensity * distanceMultiplier * Time.deltaTime;
+		return stressAmount;
+	}
+	
+	public void DecayStress() {
+		mStress = Mathf.Clamp(mStress + kStressRate * Time.deltaTime, 0f, 1f);
+	}
+	
+	public void IncreaseHunger() {
+		mHunger = Mathf.Clamp(mHunger + kHungerRate * Time.deltaTime, 0f, 1f);
+	}
+	
+	public bool CheckDeath() {
 		// if the bird is too hungry or stressed, he be dead
-		if( currentStateID != CrowStates.Dead && ( mHunger >= 1f || mStress >= 1f ) ) {
+		if( mHunger >= 1f || mStress >= 1f ) {
 			Die();
+			return true;
 		}
-		
-		// increase hunger if not eating or dead
-		if( currentStateID != CrowStates.Eating && currentStateID != CrowStates.Dead ) {
-			mHunger = Mathf.Clamp(mHunger + kHungerRate * Time.deltaTime, 0f, 1f);
-		}
-		
-		// increase stress if near flailing scarecrow
-		if( currentStateID != CrowStates.Dead ) {
-			float distanceMultiplier = ( 8f - Vector3.Distance( transform.position, mScarecrow.transform.position ) ) / 8f;
-			distanceMultiplier = Mathf.Clamp( distanceMultiplier, 0f, 1f );
-			float stressAmount = mScarecrow.mMovementIntensity * distanceMultiplier * Time.deltaTime;
-			Scare( stressAmount );
-			// also, decrease it over time
-			mStress = Mathf.Clamp(mStress + kStressRate * Time.deltaTime, 0f, 1f);
-		}
-		
-		// play the cawing sound if flying around
-		if( currentStateID == CrowStates.Fleeing 
-			|| currentStateID == CrowStates.FlyingToCorn 
-			|| currentStateID == CrowStates.Idle 
-			|| currentStateID == CrowStates.WaitingForStress ) {
-			PlayCawSound();
-		}
-		
-		mStateMachine.Update( Time.deltaTime );
-		
+		return false;
 	}
 	
 	public int GetCurrentStateID() {
 		return mStateMachine.GetCurrentStateID();	
 	}
 	
-	void PlayCawSound() {
+	public void PlayCawSound() {
 		if( Time.time >= mNextCawSoundTime ) {
 			audio.PlayOneShot( kCawSound );
 			mNextCawSoundTime = Time.time + Random.Range( 0.25f, 3f );
@@ -111,7 +106,7 @@ public class Crow : MonoBehaviour {
 	// Handle collision events
 	//----------------------------------------------------------------------------------------------------
 	void OnCollisionEnter( Collision c ) {
-		if( c.gameObject.transform.root.name == "Scarecrow" ) {
+		if( GetCurrentStateID() != CrowStates.Dead && c.gameObject.transform.root.name == "Scarecrow" ) {
 			print("Hit Scarecrow");
 			Hit( kHitStressPercentage );
 		}
@@ -171,7 +166,7 @@ public class Crow : MonoBehaviour {
 	
 	public void Scare( float stressAmount ) {
 		mStress += stressAmount;
-		if( GetCurrentStateID() != CrowStates.Fleeing && mStress > kFleeStressThreshold ) {
+		if( GetCurrentStateID() != CrowStates.Fleeing && GetCurrentStateID() != CrowStates.WaitingForStress && mStress > kFleeStressThreshold ) {
 			Flee();
 		}
 	}
@@ -220,10 +215,16 @@ public class CrowState_Idle : State {
 	
 	public override void Enter ()
 	{
+		Debug.Log("Idle:Enter");
 		mCrow.SwitchSprite( "Sprite_Idle" );
 	}
 	
-	public override void Update (float deltaTime) {}	
+	public override void Update (float deltaTime) {
+		mCrow.Scare( mCrow.GetStressFromScarecrow() );
+		mCrow.DecayStress();
+		mCrow.IncreaseHunger();
+		mCrow.PlayCawSound();
+	}	
 	public override void Exit () {}
 }
 
@@ -243,6 +244,8 @@ public class CrowState_Eating : State {
 	
 	public override void Enter ()
 	{
+		Debug.Log("Eating:Enter");
+		
 		// face right
 		mCrow.SwitchFacing( false );
 		
@@ -279,6 +282,9 @@ public class CrowState_Eating : State {
 			
 			// play an eating sound every now and then
 			PlayEatSound();
+			
+			mCrow.Scare( mCrow.GetStressFromScarecrow() );
+			mCrow.DecayStress();
 		}
 		
 		// fly up
@@ -288,6 +294,11 @@ public class CrowState_Eating : State {
 				mbDoneEating = true;	
 			}
 			mCrow.transform.position = Vector3.MoveTowards( mCrow.transform.position, mFlyUpTargetPos, mCrow.kMaxSpeed );
+			
+			mCrow.Scare( mCrow.GetStressFromScarecrow() );
+			mCrow.DecayStress();
+			mCrow.IncreaseHunger();
+			mCrow.PlayCawSound();
 		}		
 
 		// go to the next stalk
@@ -320,6 +331,8 @@ public class CrowState_FlyingToCorn : State {
 	
 	public override void Enter ()
 	{
+		Debug.Log("FlyingToCorn:Enter");
+		
 		// switch to the calm flying sprite
 		mCrow.SwitchSprite( "Sprite_Calm" );
 		
@@ -338,6 +351,10 @@ public class CrowState_FlyingToCorn : State {
 		// move toward the corn until we're in eating range
 		if( Vector3.Distance( mCrow.transform.position, mTargetCornLandPos ) > 0.05f ) {
 			mCrow.transform.position = Vector3.MoveTowards( mCrow.transform.position, mTargetCornLandPos, mCrow.kMaxSpeed );
+			mCrow.Scare( mCrow.GetStressFromScarecrow() );
+			mCrow.DecayStress();
+			mCrow.IncreaseHunger();
+			mCrow.PlayCawSound();
 		}		
 		else {
 			mCrow.Eat( mTargetCorn );
@@ -378,6 +395,7 @@ public class CrowState_Fleeing : State {
 	
 	public override void Enter ()
 	{
+		Debug.Log( "Fleeing:Enter" );
 		// switch to the flee sprite
 		mCrow.SwitchSprite("Sprite_Flee");
 		
@@ -395,6 +413,8 @@ public class CrowState_Fleeing : State {
 	{
 		if( Vector3.Distance( mCrow.transform.position, mTargetSafeSpot.transform.position ) > 0.05f ) {
 			mCrow.transform.position = Vector3.MoveTowards( mCrow.transform.position, mTargetSafeSpot.transform.position, mCrow.kMaxSpeed );
+			mCrow.DecayStress();
+			mCrow.IncreaseHunger();
 		}		
 		else {
 			mCrow.WaitForStress();
@@ -437,11 +457,17 @@ public class CrowState_WaitingForStress : State {
 	}
 	
 	public override void Enter () {
+		Debug.Log("WaitingForStress:Enter");
 		mCrow.SwitchSprite( "Sprite_Calm" );	
 	}
 	
 	public override void Update (float deltaTime)
 	{
+		mCrow.Scare( mCrow.GetStressFromScarecrow() );
+		mCrow.DecayStress();
+		mCrow.IncreaseHunger();
+		mCrow.PlayCawSound();
+		
 		if( mCrow.mStress < mCrow.kNormalStressThreshold || mCrow.mHunger > mCrow.kHungerReturnThreshold ) {
 			mCrow.FlyToCorn();	
 		}
@@ -461,6 +487,8 @@ public class CrowState_Dead : State {
 	}
 	
 	public override void Enter () {
+		Debug.Log("Dead:Enter");
+		
 		// report the death to the game
 		Game game = GameObject.FindObjectOfType(typeof(Game)) as Game;
 		game.OnBirdDeath();
