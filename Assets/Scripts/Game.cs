@@ -106,14 +106,14 @@ public class Game : MonoBehaviour {
 			HideDialogLine();
 		}
 		
-		if(mCrow.mCurState == Crow.CrowStates.Dead) {
+		if(mCrow.GetCurrentStateID() == CrowStates.Dead) {
 			crowKnownDead = true;
 			BirdDeadDialog();
 			dnc.dayLength = 10;
 		}
 		
 		if(!mScarecrow.isAlive) {
-			if(!robotKnownDead && mCrow.mCurState != Crow.CrowStates.Dead) {
+			if(!robotKnownDead && mCrow.GetCurrentStateID() != CrowStates.Dead) {
 				ShowDialogLine("My life ends. My purpose fulfilled. I die happily");
 			}
 			robotKnownDead = true;
@@ -140,7 +140,7 @@ public class Game : MonoBehaviour {
 	
 	void OnGUI () {
 		
-		if(mCrow.mCurState != Crow.CrowStates.Dead) {
+		if(mCrow.GetCurrentStateID() != CrowStates.Dead) {
 			DrawHungerMeter();
 			DrawStressMeter();
 		}
@@ -149,7 +149,7 @@ public class Game : MonoBehaviour {
 			DrawBatteryMeter();
 		}
 		
-		if(!mScarecrow.isAlive || (mCrow.mCurState == Crow.CrowStates.Dead)) {
+		if(!mScarecrow.isAlive || (mCrow.GetCurrentStateID() == CrowStates.Dead)) {
 			if(GUI.Button(new Rect((Screen.width/2)-100, Screen.height - 100, 200, 50), "Restart Game")) {
 				Application.LoadLevel("Main");
 			}
